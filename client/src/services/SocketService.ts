@@ -9,7 +9,7 @@ class SocketService {
   private static instance: SocketService;
   private socket: SocketWithPeerInfo | null =
     null;
-  private serverUrl = "http://localhost:3000";
+  private serverUrl = "http://44.202.31.246:3000";
   private eventHandlers: Map<
     string,
     Array<(data: unknown) => void>
