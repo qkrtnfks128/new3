@@ -1,0 +1,100 @@
+.home-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.home-content {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  width: 90%;
+  max-width: 600px;
+  text-align: center;
+}
+
+.home-content h1 {
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.home-content p {
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.join-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.join-room,
+.create-room {
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.join-room h2,
+.create-room h2 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: #444;
+}
+
+.join-room form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.join-room input {
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.join-button,
+.create-button {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.join-button {
+  background-color: #4caf50;
+  color: white;
+}
+
+.create-button {
+  background-color: #2196f3;
+  color: white;
+  width: 100%;
+}
+
+.join-button:hover {
+  background-color: #45a049;
+}
+
+.create-button:hover {
+  background-color: #0b7dda;
+}
+
+@media (min-width: 768px) {
+  .join-options {
+    flex-direction: row;
+  }
+
+  .join-room,
+  .create-room {
+    flex: 1;
+  }
+}

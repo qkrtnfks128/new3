@@ -1,0 +1,43 @@
+.video-participant {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  /* 16:9 비율 유지 */
+  background-color: #222;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.video-participant video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-participant.local {
+  border: 2px solid #4caf50;
+}
+
+.video-participant.remote {
+  border: 2px solid #2196f3;
+}
+
+.participant-info {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 5px 10px;
+  border-radius: 4px;
+  z-index: 1;
+}
+
+.peer-id {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
