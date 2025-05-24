@@ -9,8 +9,7 @@ class SocketService {
   private static instance: SocketService;
   private socket: SocketWithPeerInfo | null =
     null;
-  private serverUrl =
-    "https://new3-ztmt.onrender.com";
+  private serverUrl = "http://localhost:3000";
   private eventHandlers: Map<
     string,
     Array<(data: unknown) => void>
@@ -29,6 +28,16 @@ class SocketService {
       urls: "turn:openrelay.metered.ca:80",
       username: "openrelayproject",
       credential: "openrelayproject",
+    },
+    {
+      urls: "turn:numb.viagenie.ca",
+      username: "webrtc@live.com",
+      credential: "muazkh",
+    },
+    {
+      urls: "turn:turn.anyfirewall.com:443?transport=tcp",
+      username: "webrtc",
+      credential: "webrtc",
     },
   ];
 

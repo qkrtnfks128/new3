@@ -18,9 +18,16 @@ const server = http.createServer(app);
 // Socket.IO 서버 생성
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: [
+      "https://main.d2ys58s4d6y0sv.amplifyapp.com",
+      "*",
+    ],
     methods: ["GET", "POST"],
+    credentials: true,
   },
+  // 소켓 타임아웃 설정도 추가
+  pingTimeout: 30000,
+  pingInterval: 25000,
 });
 
 // ICE 서버 설정 (STUN/TURN)
