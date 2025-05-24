@@ -60,8 +60,8 @@ module.exports = {
     webRtcTransport: {
       listenIps: [
         {
-          ip: "0.0.0.0",
-          announcedIp: "44.202.31.246", // 클라이언트에 알릴 IP (실제 배포 시 서버 공인 IP로 변경)
+          ip: "0.0.0.0", // 모든 인터페이스에서 리슨
+          announcedIp: null, // announcedIp를 null로 설정, STUN을 통해 결정되도록 함
         },
       ],
       maxIncomingBitrate: 1500000,

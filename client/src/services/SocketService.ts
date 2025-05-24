@@ -16,6 +16,22 @@ class SocketService {
     Array<(data: unknown) => void>
   > = new Map();
 
+  // ICE 서버 설정 추가
+  private iceServers = [
+    {
+      urls: [
+        "stun:stun.l.google.com:19302",
+        "stun:stun1.l.google.com:19302",
+      ],
+    },
+    // 무료 TURN 서버 (테스트용)
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+  ];
+
   private constructor() {}
 
   public static getInstance(): SocketService {
@@ -206,6 +222,7 @@ class SocketService {
   ): Promise<unknown> {
     return this.request("createWebRtcTransport", {
       transportType,
+      iceServers: this.iceServers, // STUN/TURN 서버 정보 추가
     });
   }
 
@@ -262,6 +279,30 @@ class SocketService {
     return this.request("resumeConsumer", {
       consumerId,
     });
+  }
+
+  // ICE 서버 정보 가져오기
+  public getIceServers(): RTCIceServer[] {
+    return this.iceServers;
+  }
+
+  // ICE 서버 정보를 서버에서 가져오는 메서드 추가
+  public async fetchIceServers(): Promise<void> {
+    try {
+      const response = await fetch(
+        `${this.serverUrl}/iceServers`
+      );
+      const data = await response.json();
+      if (data && data.iceServers) {
+        this.iceServers = data.iceServers;
+      }
+    } catch (error) {
+      console.error(
+        "ICE 서버 정보를 가져오는 데 실패했습니다:",
+        error
+      );
+      // 에러가 발생해도 기본 ICE 서버 설정은 유지됨
+    }
   }
 }
 

@@ -23,6 +23,29 @@ const io = new Server(server, {
   },
 });
 
+// ICE 서버 설정 (STUN/TURN)
+const iceServers = [
+  {
+    urls: [
+      "stun:stun.l.google.com:19302",
+      "stun:stun1.l.google.com:19302",
+    ],
+  },
+  // 무료 TURN 서버 (테스트용)
+  {
+    urls: "turn:openrelay.metered.ca:80",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+];
+
+// config 객체에 iceServers 추가
+config.mediasoup = config.mediasoup || {};
+config.mediasoup.webRtcTransport =
+  config.mediasoup.webRtcTransport || {};
+config.mediasoup.webRtcTransport.iceServers =
+  iceServers;
+
 // 전역 변수로 roomManager 선언
 let roomManager = null;
 
@@ -31,6 +54,11 @@ app.get("/", (req, res) => {
   res.json({
     status: "mediasoup 서버가 실행 중입니다",
   });
+});
+
+// ICE 서버 정보를 클라이언트에 제공하는 API 추가
+app.get("/iceServers", (req, res) => {
+  res.json({ iceServers });
 });
 
 // 방 목록 API
@@ -48,6 +76,24 @@ async function run() {
     console.log("mediasoup worker 초기화 중...");
     await mediasoupWorker.init();
 
+    // Render 환경을 위한 설정
+    if (process.env.RENDER) {
+      // Render에서 실행 중일 때 announcedIp 설정
+      const renderExternalIp =
+        process.env.RENDER_EXTERNAL_IP ||
+        process.env.RENDER_EXTERNAL_URL;
+      if (renderExternalIp) {
+        config.mediasoup.webRtcTransport.listenIps.forEach(
+          (listenIp) => {
+            if (listenIp.ip === "0.0.0.0") {
+              listenIp.announcedIp =
+                renderExternalIp;
+            }
+          }
+        );
+      }
+    }
+
     // 방 관리자 생성
     roomManager = new RoomManager(
       mediasoupWorker
@@ -64,9 +110,11 @@ async function run() {
     );
 
     // 서버 시작
-    server.listen(config.server.port, () => {
+    const PORT =
+      process.env.PORT || config.server.port;
+    server.listen(PORT, () => {
       console.log(
-        `mediasoup 서버가 포트 ${config.server.port}에서 실행 중입니다`
+        `mediasoup 서버가 포트 ${PORT}에서 실행 중입니다`
       );
     });
   } catch (error) {

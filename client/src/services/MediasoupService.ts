@@ -247,6 +247,8 @@ class MediasoupService {
               transportOptions.dtlsParameters,
             sctpParameters:
               transportOptions.sctpParameters,
+            iceServers:
+              this.socketService.getIceServers(),
           }
         );
 
