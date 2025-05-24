@@ -378,10 +378,20 @@ class MediasoupService {
     }
   ): Promise<MediaStream> {
     try {
+      console.log(
+        "요청된 미디어 제약 조건:",
+        constraints
+      );
       const stream =
         await navigator.mediaDevices.getUserMedia(
           constraints
         );
+      console.log(
+        "로컬 스트림 생성 성공:",
+        stream
+          .getTracks()
+          .map((t) => `${t.kind}: ${t.label}`)
+      );
       this.mediaState.localStream = stream;
 
       const localStreamInfo: MediaStreamInfo = {
@@ -523,6 +533,9 @@ class MediasoupService {
   public async consumeStream(
     producerId: string
   ): Promise<MediaStreamInfo | null> {
+    console.log(
+      `${producerId} 프로듀서 스트림 소비 시작`
+    );
     if (
       !this.mediaState.device ||
       !this.mediaState.receiveTransport
@@ -591,6 +604,17 @@ class MediasoupService {
       );
       this.emitEvent("newStream", streamInfo);
 
+      console.log(
+        `소비자 생성 성공:`,
+        consumer.id,
+        consumer.kind
+      );
+
+      // 스트림 추가 시 로그
+      console.log(
+        `리모트 스트림 생성됨:`,
+        stream.id
+      );
       return streamInfo;
     } catch (error) {
       console.error(
