@@ -7,14 +7,19 @@ module.exports = {
     worker: {
       rtcMinPort: 10000,
       rtcMaxPort: 10100,
-      logLevel: "warn",
+      logLevel: "debug",
       logTags: [
-        "info",
         "ice",
         "dtls",
         "rtp",
         "srtp",
         "rtcp",
+        "rtx",
+        "bwe",
+        "score",
+        "simulcast",
+        "svc",
+        "sctp",
       ],
     },
     // Router 설정
@@ -61,11 +66,17 @@ module.exports = {
       listenIps: [
         {
           ip: "0.0.0.0", // 모든 인터페이스에서 리슨
-          announcedIp: null, // announcedIp를 null로 설정, STUN을 통해 결정되도록 함
+          announcedIp: null, // 서버의 공인 IP로 설정하거나 null로 두기
         },
       ],
-      maxIncomingBitrate: 1500000,
       initialAvailableOutgoingBitrate: 1000000,
+      minimumAvailableOutgoingBitrate: 600000,
+      maxSctpMessageSize: 262144,
+      enableSctp: true,
+      enableUdp: true,
+      enableTcp: true,
+      preferUdp: false, // TCP 우선 사용 (방화벽 문제 해결에 도움)
+      maxIncomingBitrate: 1500000,
     },
   },
 };
