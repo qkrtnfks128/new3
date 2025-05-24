@@ -17,28 +17,23 @@ class SocketService {
 
   // ICE 서버 설정 추가
   private iceServers = [
+    { urls: "stun:stun.l.google.com:19302" },
     {
-      urls: [
-        "stun:stun.l.google.com:19302",
-        "stun:stun1.l.google.com:19302",
-      ],
-    },
-    // 무료 TURN 서버 (테스트용)
-    {
-      urls: "turn:openrelay.metered.ca:80",
-      username: "openrelayproject",
-      credential: "openrelayproject",
+      urls: "turn:relay.metered.ca:80",
+      username: "e8dd65f83899a91a3ecc9826",
+      credential: "/jCzMHLJzm3ndH5h",
     },
     {
-      urls: "turn:numb.viagenie.ca",
-      username: "webrtc@live.com",
-      credential: "muazkh",
+      urls: "turn:relay.metered.ca:443",
+      username: "e8dd65f83899a91a3ecc9826",
+      credential: "/jCzMHLJzm3ndH5h",
     },
     {
-      urls: "turn:turn.anyfirewall.com:443?transport=tcp",
-      username: "webrtc",
-      credential: "webrtc",
+      urls: "turn:relay.metered.ca:443?transport=tcp",
+      username: "e8dd65f83899a91a3ecc9826",
+      credential: "/jCzMHLJzm3ndH5h",
     },
+    { urls: "stun:stun.cloudflare.com:3478" },
   ];
 
   private constructor() {}
