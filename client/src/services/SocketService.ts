@@ -11,6 +11,7 @@ class SocketService {
     null;
   private serverUrl =
     "https://new3-ztmt.onrender.com";
+
   private eventHandlers: Map<
     string,
     Array<(data: unknown) => void>
