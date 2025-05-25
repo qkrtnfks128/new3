@@ -73,9 +73,9 @@ module.exports = {
       minimumAvailableOutgoingBitrate: 600000,
       maxSctpMessageSize: 262144,
       enableSctp: true,
-      enableUdp: true,
-      enableTcp: true,
-      preferUdp: false, // TCP 우선 사용 (방화벽 문제 해결에 도움)
+      enableUdp: false, // UDP 비활성화
+      enableTcp: true, // TCP 활성화
+      preferTcp: true, // TCP 우선
       maxIncomingBitrate: 1500000,
     },
   },
