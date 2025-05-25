@@ -11,6 +11,7 @@ class SocketService {
     null;
   private serverUrl =
     "https://new3-ztmt.onrender.com";
+  /// 소켓주소
 
   private eventHandlers: Map<
     string,
