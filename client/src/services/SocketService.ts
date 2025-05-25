@@ -9,7 +9,9 @@ class SocketService {
   private static instance: SocketService;
   private socket: SocketWithPeerInfo | null =
     null;
-  private serverUrl = "http://localhost:3000";
+  private serverUrl =
+    "https://new3-ztmt.onrender.com";
+
   private eventHandlers: Map<
     string,
     Array<(data: unknown) => void>
