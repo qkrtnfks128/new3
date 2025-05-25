@@ -19,11 +19,12 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
-      "https://main.d2ys58s4d6y0sv.amplifyapp.com",
       "*",
+      "http://localhost:5175",
+      "http://172.30.1.85:5175",
     ],
     methods: ["GET", "POST"],
-    credentials: true,
+    credentials: false,
   },
   // 소켓 타임아웃 설정도 추가
   pingTimeout: 30000,

@@ -10,7 +10,9 @@ class SocketService {
   private socket: SocketWithPeerInfo | null =
     null;
   private serverUrl =
-    "https://new3-ztmt.onrender.com";
+    // "https://new3-ztmt.onrender.com";
+    "http://44.202.31.246:3000";
+  // "http://localhost:3000";
 
   private eventHandlers: Map<
     string,

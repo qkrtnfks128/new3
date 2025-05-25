@@ -226,7 +226,7 @@ const VideoRoom: React.FC = () => {
       <div className="video-grid">
         {mediaStreams.map((streamInfo) => (
           <VideoParticipant
-            key={streamInfo.id}
+            key={`${streamInfo.peerId}-${streamInfo.id}-${streamInfo.type}`}
             stream={streamInfo.stream}
             peerId={streamInfo.peerId}
             isLocal={streamInfo.type === "local"}
