@@ -67,6 +67,7 @@ module.exports = {
         {
           ip: "0.0.0.0",
           // announcedIp: "169.254.191.188",
+          announcedIp: "44.202.31.246",
           // announcedIp: "172.168.10.17",
         },
       ],
