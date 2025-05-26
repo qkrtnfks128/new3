@@ -5,8 +5,8 @@ module.exports = {
   mediasoup: {
     // Worker 설정
     worker: {
-      rtcMinPort: 10000,
-      rtcMaxPort: 10100,
+      rtcMinPort: 40000,
+      rtcMaxPort: 49999, // 충분한 포트 범위 확보
       logLevel: "debug",
       logTags: [
         "ice",
@@ -65,17 +65,17 @@ module.exports = {
     webRtcTransport: {
       listenIps: [
         {
-          ip: "0.0.0.0", // 모든 인터페이스에서 리슨
-          announcedIp: null, // 서버의 공인 IP로 설정하거나 null로 두기
+          ip: "0.0.0.0",
+          announcedIp: null,
         },
       ],
-      initialAvailableOutgoingBitrate: 1000000,
-      minimumAvailableOutgoingBitrate: 600000,
+      initialAvailableOutgoingBitrate: 600000,
+      minimumAvailableOutgoingBitrate: 100000,
       maxSctpMessageSize: 262144,
       enableSctp: true,
-      enableUdp: false, // UDP 비활성화
-      enableTcp: true, // TCP 활성화
-      preferTcp: true, // TCP 우선
+      enableUdp: true, // UDP 활성화
+      enableTcp: true, // TCP도 활성화
+      preferUdp: true, // UDP 선호
       maxIncomingBitrate: 1500000,
     },
   },

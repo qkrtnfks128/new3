@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "build": "vite build",
+    "type-check": "vue-tsc --noEmit",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@eslint/js": "^9.25.0",
     "@types/node": "^22.15.21",
+    "@vitejs/plugin-basic-ssl": "^2.0.0",
     "@vitejs/plugin-vue": "^5.0.4",
     "@vue/tsconfig": "^0.5.1",
     "eslint": "^9.25.0",

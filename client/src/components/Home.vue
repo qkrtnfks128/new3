@@ -4,6 +4,15 @@
       <h1>WebRTC 화상회의</h1>
       <p>mediasoup 기반 다자간 화상회의 시스템</p>
 
+      <div class="user-info">
+        <input
+          type="text"
+          v-model="displayName"
+          placeholder="이름을 입력하세요"
+          required
+        />
+      </div>
+
       <div class="join-options">
         <div class="join-room">
           <h2>기존 방 참여하기</h2>
@@ -17,6 +26,7 @@
             <button
               type="submit"
               class="join-button"
+              :disabled="!displayName.trim()"
             >
               참여하기
             </button>
@@ -28,6 +38,7 @@
           <button
             @click="handleCreateRoom"
             class="create-button"
+            :disabled="!displayName.trim()"
           >
             새 방 생성
           </button>
@@ -45,24 +56,40 @@
     name: "Home",
     setup() {
       const roomId = ref("");
+      const displayName = ref("");
       const router = useRouter();
 
       const handleJoinRoom = () => {
-        if (roomId.value.trim()) {
-          router.push(`/room/${roomId.value}`);
+        if (
+          roomId.value.trim() &&
+          displayName.value.trim()
+        ) {
+          router.push({
+            path: `/room/${roomId.value}`,
+            query: {
+              displayName: displayName.value,
+            },
+          });
         }
       };
 
       const handleCreateRoom = () => {
-        // 랜덤 방 ID 생성
-        const randomRoomId = Math.random()
-          .toString(36)
-          .substring(2, 8);
-        router.push(`/room/${randomRoomId}`);
+        if (displayName.value.trim()) {
+          const randomRoomId = Math.random()
+            .toString(36)
+            .substring(2, 8);
+          router.push({
+            path: `/room/${randomRoomId}`,
+            query: {
+              displayName: displayName.value,
+            },
+          });
+        }
       };
 
       return {
         roomId,
+        displayName,
         handleJoinRoom,
         handleCreateRoom,
       };

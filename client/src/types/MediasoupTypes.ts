@@ -49,6 +49,7 @@ export interface MediaStreamInfo {
   track: MediaStreamTrack;
   stream: MediaStream;
   type: "local" | "remote";
+  displayName?: string;
 }
 
 export interface SocketWithPeerInfo

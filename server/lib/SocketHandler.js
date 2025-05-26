@@ -131,11 +131,21 @@ class SocketHandler {
    */
   async handleJoinRoom(
     socket,
-    { roomId, peerId },
+    { roomId, peerId, displayName },
     callback
   ) {
     try {
+      console.log("[방 참가 시작]", {
+        roomId,
+        peerId,
+        displayName,
+        socketId: socket.id,
+      });
+
       if (!roomId || !peerId) {
+        console.log(
+          "[방 참가 실패] 필수 정보 누락"
+        );
         return callback({
           error:
             "roomId와 peerId는 필수 항목입니다",
@@ -144,6 +154,10 @@ class SocketHandler {
 
       // 기존에 다른 방에 있었다면 먼저 나가기
       if (socket.roomId && socket.peerId) {
+        console.log("[기존 방 퇴장]", {
+          oldRoomId: socket.roomId,
+          oldPeerId: socket.peerId,
+        });
         this.roomManager.leaveRoom(
           socket.roomId,
           socket.peerId
@@ -155,29 +169,101 @@ class SocketHandler {
       await this.roomManager.joinRoom(
         roomId,
         peerId,
-        socket
+        socket,
+        {
+          displayName: displayName || "Anonymous",
+        }
       );
       socket.join(roomId);
 
       // 소켓에 정보 저장
       socket.roomId = roomId;
       socket.peerId = peerId;
+      socket.displayName =
+        displayName || "Anonymous";
 
-      // 같은 방의 다른 peer 목록
+      console.log("[방 참가 성공]", {
+        roomId,
+        peerId,
+        displayName: socket.displayName,
+      });
+
+      // 같은 방의 다른 peer 목록과 producer 정보 가져오기
       const room =
         this.roomManager.getRoom(roomId);
-      const peers = room
-        ? room.getOtherPeerIds(peerId)
-        : [];
+      if (!room) {
+        console.log(
+          "[방 정보 조회 실패] 방을 찾을 수 없음"
+        );
+        return callback({
+          error: "방을 찾을 수 없습니다",
+        });
+      }
+
+      const peers = room.getOtherPeerIds(peerId);
+      const producers = room.getAllProducers();
+
+      console.log("[방 정보 조회]", {
+        peerCount: peers.length,
+        producerCount: producers.length,
+      });
 
       // 방의 다른 사용자들에게 새 피어가 참여했음을 알림
-      socket
-        .to(roomId)
-        .emit("newPeer", { peerId });
+      socket.to(roomId).emit("newPeer", {
+        peerId,
+        displayName: socket.displayName,
+      });
 
-      callback({ peers });
+      // 새로 참여한 사용자에게 기존 producer 정보 전달
+      for (const producer of producers) {
+        const producerPeer = room.getPeer(
+          producer.peerId
+        );
+        if (!producerPeer) {
+          console.log(
+            "[프로듀서 정보 전달 실패] 피어 없음",
+            {
+              producerId: producer.id,
+              peerId: producer.peerId,
+            }
+          );
+          continue;
+        }
+
+        console.log("[프로듀서 정보 전달]", {
+          producerId: producer.id,
+          peerId: producer.peerId,
+          kind: producer.kind,
+          displayName: socket.displayName,
+        });
+
+        socket.emit("newProducer", {
+          ...producer,
+          peerId: producer.peerId,
+          displayName:
+            socket.displayName || "Anonymous",
+          type:
+            producer.appData?.type || "unknown",
+        });
+      }
+
+      // 피어 목록 반환
+      const peerList = peers.map((peerId) => {
+        const peer = room.getPeer(peerId);
+        return {
+          peerId,
+          displayName: peer
+            ? socket.displayName
+            : "Anonymous",
+        };
+      });
+
+      console.log("[피어 목록 반환]", {
+        peers: peerList,
+      });
+      callback({ peers: peerList });
     } catch (error) {
-      console.error("방 참여 오류:", error);
+      console.error("[방 참가 오류]", error);
       callback({ error: error.message });
     }
   }
@@ -413,7 +499,14 @@ class SocketHandler {
         await peer.createProducer({
           kind,
           rtpParameters,
-          appData: appData || {},
+          appData: {
+            ...appData,
+            displayName:
+              appData?.displayName ||
+              peer.displayName ||
+              socket.displayName ||
+              "Anonymous",
+          },
         });
 
       // 방의 다른 참여자들에게 새 프로듀서 생성을 알림
@@ -423,6 +516,11 @@ class SocketHandler {
           peerId: socket.peerId,
           producerId: producerInfo.id,
           kind,
+          displayName:
+            appData?.displayName ||
+            peer.displayName ||
+            socket.displayName ||
+            "Anonymous",
         });
 
       callback(producerInfo);
@@ -505,6 +603,10 @@ class SocketHandler {
   ) {
     try {
       if (!socket.roomId || !socket.peerId) {
+        console.log(
+          "[Consumer 생성 실패] 방 참가 상태 아님:",
+          { socketId: socket.id }
+        );
         return callback({
           error: "먼저 방에 참여해야 합니다",
         });
@@ -514,17 +616,61 @@ class SocketHandler {
         socket.roomId
       );
       if (!room) {
+        console.log(
+          "[Consumer 생성 실패] 방 없음:",
+          { roomId: socket.roomId }
+        );
         return callback({
           error: "방을 찾을 수 없습니다",
         });
       }
 
+      // 프로듀서 정보 확인
+      const producer =
+        room.getProducer(producerId);
+      if (!producer) {
+        console.log(
+          "[Consumer 생성 실패] 프로듀서 없음:",
+          { producerId }
+        );
+        return callback({
+          error: "프로듀서를 찾을 수 없습니다",
+        });
+      }
+
+      // 프로듀서의 피어 정보 확인
+      const producerPeer = room.getPeer(
+        producer.peerId
+      );
+      if (!producerPeer) {
+        console.log(
+          "[Consumer 생성 실패] 프로듀서 피어 없음:",
+          { producerId, peerId: producer.peerId }
+        );
+        return callback({
+          error:
+            "프로듀서의 피어를 찾을 수 없습니다",
+        });
+      }
+
+      // 현재 피어 확인
       const peer = room.getPeer(socket.peerId);
       if (!peer) {
+        console.log(
+          "[Consumer 생성 실패] 소비자 피어 없음:",
+          { peerId: socket.peerId }
+        );
         return callback({
           error: "피어를 찾을 수 없습니다",
         });
       }
+
+      console.log("[Consumer 생성 시작]", {
+        consumerId: socket.peerId,
+        producerId,
+        producerPeerId: producer.peerId,
+        kind: producer.kind,
+      });
 
       // consumer 생성
       const consumerInfo =
@@ -534,9 +680,36 @@ class SocketHandler {
           rtpCapabilities
         );
 
-      callback(consumerInfo);
+      if (!consumerInfo) {
+        console.log(
+          "[Consumer 생성 실패] 생성 결과 없음"
+        );
+        return callback({
+          error: "Consumer 생성에 실패했습니다",
+        });
+      }
+
+      console.log("[Consumer 생성 성공]", {
+        consumerId: consumerInfo.id,
+        producerId,
+        kind: consumerInfo.kind,
+      });
+
+      // 프로듀서 정보를 포함하여 응답
+      callback({
+        ...consumerInfo,
+        peerId: producer.peerId,
+        displayName:
+          producer.appData?.displayName ||
+          producerPeer.displayName ||
+          "Anonymous",
+        type: producer.appData?.type || "unknown",
+      });
     } catch (error) {
-      console.error("Consumer 생성 오류:", error);
+      console.error(
+        "[Consumer 생성 오류]",
+        error
+      );
       callback({ error: error.message });
     }
   }

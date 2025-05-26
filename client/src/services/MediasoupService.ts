@@ -28,6 +28,8 @@ class MediasoupService {
     string,
     Array<(data: EventCallbackData) => void>
   > = new Map();
+  private initializationPromise: Promise<void> | null =
+    null;
 
   private constructor() {
     this.socketService =
@@ -61,6 +63,9 @@ class MediasoupService {
       "newProducer",
       async (producerInfo: unknown) => {
         try {
+          if (!this.mediaState.device?.loaded) {
+            await this.initialize();
+          }
           const typedInfo =
             producerInfo as ProducerInfo;
           console.log(
@@ -194,177 +199,192 @@ class MediasoupService {
     }
   }
 
-  // Device 로드 및 초기화
-  public async loadDevice(): Promise<void> {
-    try {
-      const response =
-        await this.socketService.getRtpCapabilities();
-      const rtpCapabilities =
-        response.rtpCapabilities as mediasoupTypes.RtpCapabilities;
-
-      // mediasoup 디바이스 생성
-      const device = new mediasoupClient.Device();
-
-      // 디바이스 로드
-      await device.load({
-        routerRtpCapabilities: rtpCapabilities,
-      });
-
-      this.mediaState.device = device;
-      console.log("Device loaded:", device);
-    } catch (error) {
-      console.error(
-        "Failed to load device:",
-        error
-      );
-      throw error;
+  private async initializeDevice(): Promise<void> {
+    if (this.mediaState.device?.loaded) {
+      return;
     }
+
+    const response =
+      await this.socketService.getRtpCapabilities();
+    const rtpCapabilities =
+      response.rtpCapabilities as mediasoupTypes.RtpCapabilities;
+
+    const device = new mediasoupClient.Device();
+    await device.load({
+      routerRtpCapabilities: rtpCapabilities,
+    });
+
+    this.mediaState.device = device;
+    console.log("Device loaded:", device);
+  }
+
+  public async initialize(): Promise<void> {
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    this.initializationPromise = (async () => {
+      try {
+        await this.initializeDevice();
+        await this.createSendTransport();
+        await this.createReceiveTransport();
+      } finally {
+        this.initializationPromise = null;
+      }
+    })();
+
+    return this.initializationPromise;
   }
 
   // 전송 및 소비를 위한 Transport 생성
   public async createSendTransport(): Promise<mediasoupClient.types.Transport> {
-    if (!this.mediaState.device) {
+    if (this.mediaState.sendTransport) {
+      return this.mediaState.sendTransport;
+    }
+
+    if (!this.mediaState.device?.loaded) {
       throw new Error("Device not loaded");
     }
 
-    try {
-      const transportResponse =
-        await this.socketService.createWebRtcTransport(
-          "send"
-        );
-      const transportOptions =
-        transportResponse as TransportOptions;
+    const transportResponse =
+      await this.socketService.createWebRtcTransport(
+        "send"
+      );
+    const transportOptions =
+      transportResponse as TransportOptions;
 
-      const transport =
-        this.mediaState.device.createSendTransport(
-          {
-            id: transportOptions.id,
-            iceParameters:
-              transportOptions.iceParameters,
-            iceCandidates:
-              transportOptions.iceCandidates,
-            dtlsParameters:
-              transportOptions.dtlsParameters,
-            sctpParameters:
-              transportOptions.sctpParameters,
-            iceServers:
-              this.socketService.getIceServers(),
-          }
-        );
+    const transport =
+      this.mediaState.device.createSendTransport({
+        id: transportOptions.id,
+        iceParameters:
+          transportOptions.iceParameters,
+        iceCandidates:
+          transportOptions.iceCandidates,
+        dtlsParameters:
+          transportOptions.dtlsParameters,
+        sctpParameters:
+          transportOptions.sctpParameters,
+        iceServers:
+          this.socketService.getIceServers(),
+      });
 
-      // Transport 이벤트 처리
-      transport.on(
-        "connect",
-        async (
-          { dtlsParameters },
-          callback,
-          errback
-        ) => {
-          try {
-            await this.socketService.connectWebRtcTransport(
+    // Transport 이벤트 처리
+    transport.on(
+      "connect",
+      async (
+        { dtlsParameters },
+        callback,
+        errback
+      ) => {
+        try {
+          await this.socketService.connectWebRtcTransport(
+            transport.id,
+            dtlsParameters,
+            "send"
+          );
+          callback();
+        } catch (error) {
+          errback(error as Error);
+        }
+      }
+    );
+
+    transport.on(
+      "produce",
+      async (
+        { kind, rtpParameters, appData },
+        callback,
+        errback
+      ) => {
+        try {
+          const { id } =
+            await this.socketService.produce(
               transport.id,
-              dtlsParameters,
-              "send"
+              kind as "audio" | "video",
+              rtpParameters,
+              appData
             );
-            callback();
-          } catch (error) {
-            errback(error as Error);
-          }
+          callback({ id });
+        } catch (error) {
+          errback(error as Error);
         }
-      );
+      }
+    );
 
-      transport.on(
-        "produce",
-        async (
-          { kind, rtpParameters, appData },
-          callback,
-          errback
-        ) => {
-          try {
-            const { id } =
-              await this.socketService.produce(
-                transport.id,
-                kind as "audio" | "video",
-                rtpParameters,
-                appData
-              );
-            callback({ id });
-          } catch (error) {
-            errback(error as Error);
-          }
-        }
-      );
-
-      this.mediaState.sendTransport = transport;
-      return transport;
-    } catch (error) {
-      console.error(
-        "Failed to create send transport:",
-        error
-      );
-      throw error;
-    }
+    this.mediaState.sendTransport = transport;
+    return transport;
   }
 
   public async createReceiveTransport(): Promise<mediasoupClient.types.Transport> {
-    if (!this.mediaState.device) {
+    if (this.mediaState.receiveTransport) {
+      return this.mediaState.receiveTransport;
+    }
+
+    if (!this.mediaState.device?.loaded) {
       throw new Error("Device not loaded");
     }
 
-    try {
-      const transportResponse =
-        await this.socketService.createWebRtcTransport(
-          "receive"
-        );
-      const transportOptions =
-        transportResponse as TransportOptions;
+    const transportResponse =
+      await this.socketService.createWebRtcTransport(
+        "receive"
+      );
+    const transportOptions =
+      transportResponse as TransportOptions;
 
-      const transport =
-        this.mediaState.device.createRecvTransport(
-          {
-            id: transportOptions.id,
-            iceParameters:
-              transportOptions.iceParameters,
-            iceCandidates:
-              transportOptions.iceCandidates,
-            dtlsParameters:
-              transportOptions.dtlsParameters,
-            sctpParameters:
-              transportOptions.sctpParameters,
-          }
-        );
+    const transport =
+      this.mediaState.device.createRecvTransport({
+        id: transportOptions.id,
+        iceParameters:
+          transportOptions.iceParameters,
+        iceCandidates:
+          transportOptions.iceCandidates,
+        dtlsParameters:
+          transportOptions.dtlsParameters,
+        sctpParameters:
+          transportOptions.sctpParameters,
+      });
 
-      // Transport 연결 이벤트 처리
-      transport.on(
-        "connect",
-        async (
-          { dtlsParameters },
-          callback,
-          errback
-        ) => {
-          try {
-            await this.socketService.connectWebRtcTransport(
-              transport.id,
-              dtlsParameters,
-              "receive"
-            );
-            callback();
-          } catch (error) {
-            errback(error as Error);
-          }
+    // Transport 연결 이벤트 처리
+    transport.on(
+      "connect",
+      async (
+        { dtlsParameters },
+        callback,
+        errback
+      ) => {
+        try {
+          await this.socketService.connectWebRtcTransport(
+            transport.id,
+            dtlsParameters,
+            "receive"
+          );
+          callback();
+        } catch (error) {
+          errback(error as Error);
         }
-      );
+      }
+    );
 
-      this.mediaState.receiveTransport =
-        transport;
-      return transport;
-    } catch (error) {
-      console.error(
-        "Failed to create receive transport:",
-        error
-      );
-      throw error;
-    }
+    transport.on(
+      "connectionstatechange",
+      (state) => {
+        console.log(
+          "Receive transport connection state changed to",
+          state
+        );
+        if (
+          state === "failed" ||
+          state === "disconnected"
+        ) {
+          console.warn(
+            "Transport connection failed or disconnected"
+          );
+        }
+      }
+    );
+
+    this.mediaState.receiveTransport = transport;
+    return transport;
   }
 
   // 로컬 미디어 스트림 생성 및 전송
@@ -382,10 +402,11 @@ class MediasoupService {
         "요청된 미디어 제약 조건:",
         constraints
       );
-      const stream =
-        await navigator.mediaDevices.getUserMedia(
-          constraints
-        );
+      const stream = await navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then()
+        .catch();
+
       console.log(
         "로컬 스트림 생성 성공:",
         stream
@@ -427,6 +448,14 @@ class MediasoupService {
     }
 
     try {
+      // 현재 URL에서 displayName 가져오기
+      const urlParams = new URLSearchParams(
+        window.location.search
+      );
+      const displayName =
+        urlParams.get("displayName") ||
+        "Anonymous";
+
       if (stream.getVideoTracks().length > 0) {
         const videoTrack =
           stream.getVideoTracks()[0];
@@ -441,6 +470,9 @@ class MediasoupService {
               ],
               codecOptions: {
                 videoGoogleStartBitrate: 1000,
+              },
+              appData: {
+                displayName,
               },
             }
           );
@@ -468,6 +500,9 @@ class MediasoupService {
               codecOptions: {
                 opusStereo: true,
                 opusDtx: true,
+              },
+              appData: {
+                displayName,
               },
             }
           );
@@ -529,19 +564,39 @@ class MediasoupService {
     }
   }
 
-  // 원격 스트림 소비 (consume)
+  private async waitForTrack(
+    track: MediaStreamTrack
+  ): Promise<void> {
+    if (track.readyState === "live") return;
+
+    return new Promise((resolve) => {
+      const checkState = () => {
+        if (track.readyState === "live") {
+          resolve();
+          return;
+        }
+        setTimeout(checkState, 100);
+      };
+
+      track.onended = () => resolve();
+      track.onunmute = () => resolve();
+
+      checkState();
+      // 5초 후에도 준비되지 않으면 타임아웃
+      setTimeout(resolve, 5000);
+    });
+  }
+
   public async consumeStream(
     producerId: string
   ): Promise<MediaStreamInfo | null> {
-    console.log(
-      `${producerId} 프로듀서 스트림 소비 시작`
-    );
-    if (
-      !this.mediaState.device ||
-      !this.mediaState.receiveTransport
-    ) {
+    if (!this.mediaState.device?.loaded) {
+      throw new Error("Device not initialized");
+    }
+
+    if (!this.mediaState.receiveTransport) {
       throw new Error(
-        "Device or receive transport not created"
+        "Receive transport not initialized"
       );
     }
 
@@ -551,6 +606,7 @@ class MediasoupService {
           producerId,
           this.mediaState.device.rtpCapabilities
         );
+
       const consumerOptions =
         consumerResponse as {
           id: string;
@@ -558,10 +614,17 @@ class MediasoupService {
           kind: mediasoupTypes.MediaKind;
           rtpParameters: mediasoupTypes.RtpParameters;
           peerId?: string;
+          displayName?: string;
+          type?: string;
         };
 
+      console.log(
+        "[MediasoupService] Consumer options:",
+        consumerOptions
+      );
+
       const consumer =
-        await this.mediaState.receiveTransport.consume(
+        await this.mediaState.receiveTransport!.consume(
           {
             id: consumerOptions.id,
             producerId:
@@ -572,53 +635,118 @@ class MediasoupService {
           }
         );
 
+      // 트랙이 준비될 때까지 대기
+      await this.waitForTrack(consumer.track);
+
+      // 트랙 상태 확인 및 활성화
+      if (!consumer.track.enabled) {
+        consumer.track.enabled = true;
+      }
+
       this.mediaState.consumers.set(
-        producerId,
+        consumerOptions.producerId,
         consumer
       );
 
-      // Consumer 시작
+      // Resume the consumer
       await this.socketService.resumeConsumer(
         consumer.id
       );
 
-      // 리모트 스트림 생성
+      // 트랙 상태 모니터링 설정
+      consumer.track.onmute = () => {
+        console.log(
+          `[MediasoupService] Track muted:`,
+          {
+            id: consumer.id,
+            kind: consumer.kind,
+          }
+        );
+        if (consumer.track.enabled === false) {
+          consumer.track.enabled = true;
+        }
+      };
+
+      consumer.track.onunmute = () => {
+        console.log(
+          `[MediasoupService] Track unmuted:`,
+          {
+            id: consumer.id,
+            kind: consumer.kind,
+          }
+        );
+      };
+
+      // 같은 peer의 기존 스트림 찾기
+      const peerId =
+        consumerOptions.peerId || "unknown";
+      const displayName =
+        consumerOptions.displayName ||
+        "Anonymous";
+      // const existingStreamInfo = Array.from(
+      //   this.remoteStreams.values()
+      // ).find(
+      //   (streamInfo) =>
+      //     streamInfo.peerId === peerId
+      // );
+
+      // if (existingStreamInfo) {
+      //   // 기존 스트림에 새 트랙 추가
+      //   console.log(
+      //     `[MediasoupService] Adding ${consumer.kind} track to existing stream ${existingStreamInfo.id}`
+      //   );
+
+      //   // 기존 같은 종류의 트랙이 있다면 제거
+      //   const existingTracks =
+      //     existingStreamInfo.stream.getTracks();
+      //   existingTracks
+      //     .filter(
+      //       (track) =>
+      //         track.kind === consumer.track.kind
+      //     )
+      //     .forEach((track) => {
+      //       existingStreamInfo.stream.removeTrack(
+      //         track
+      //       );
+      //       track.stop();
+      //     });
+
+      //   existingStreamInfo.stream.addTrack(
+      //     consumer.track
+      //   );
+
+      //   // 트랙 정보 업데이트
+      //   if (consumer.kind === "video") {
+      //     existingStreamInfo.track =
+      //       consumer.track;
+      //   }
+
+      //   return existingStreamInfo;
+      // } else {
+      // 새 스트림 생성
       const stream = new MediaStream([
         consumer.track,
       ]);
 
-      // 스트림 정보 저장
-      const peerId =
-        consumerOptions.peerId || "unknown";
       const streamInfo: MediaStreamInfo = {
-        id: consumer.id,
-        peerId,
-        track: consumer.track,
+        id: `${peerId}-${consumer.kind}`,
+        peerId: peerId,
         stream,
+        track: consumer.track,
         type: "remote",
+        displayName: displayName,
       };
 
       this.remoteStreams.set(
-        consumer.id,
+        streamInfo.id,
         streamInfo
       );
       this.emitEvent("newStream", streamInfo);
-
-      console.log(
-        `소비자 생성 성공:`,
-        consumer.id,
-        consumer.kind
-      );
-
-      // 스트림 추가 시 로그
-      console.log(
-        `리모트 스트림 생성됨:`,
-        stream.id
-      );
       return streamInfo;
+      // }
     } catch (error) {
       console.error(
-        "Failed to consume stream:",
+        "[MediasoupService] Failed to consume stream:",
         error
       );
       return null;

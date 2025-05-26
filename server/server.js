@@ -20,6 +20,7 @@ const io = new Server(server, {
   cors: {
     origin: [
       "*",
+      "http://localhost:5173",
       "http://localhost:5175",
       "http://172.30.1.85:5175",
     ],
@@ -38,12 +39,6 @@ const iceServers = [
       "stun:stun.l.google.com:19302",
       "stun:stun1.l.google.com:19302",
     ],
-  },
-  // 무료 TURN 서버 (테스트용)
-  {
-    urls: "turn:openrelay.metered.ca:80",
-    username: "openrelayproject",
-    credential: "openrelayproject",
   },
 ];
 

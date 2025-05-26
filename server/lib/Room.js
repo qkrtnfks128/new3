@@ -21,8 +21,11 @@ class Room {
   /**
    * 방에 피어 추가
    * @param {Object} peer 피어 객체
+   * @param {Object} metadata 피어 메타데이터
    */
-  addPeer(peer) {
+  addPeer(peer, metadata = {}) {
+    peer.displayName =
+      metadata.displayName || "Anonymous";
     this.peers.set(peer.id, peer);
   }
 
@@ -67,6 +70,54 @@ class Room {
     return Array.from(this.peers.keys()).filter(
       (id) => id !== excludePeerId
     );
+  }
+
+  /**
+   * 특정 producer 가져오기
+   * @param {string} producerId producer ID
+   * @returns {Object|null} producer 객체와 관련 정보
+   */
+  getProducer(producerId) {
+    for (const peer of this.peers.values()) {
+      const producer =
+        peer.producers.get(producerId);
+      if (producer) {
+        return {
+          id: producerId,
+          peerId: peer.id,
+          kind: producer.kind,
+          rtpParameters: producer.rtpParameters,
+          appData: producer.appData,
+        };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 방의 모든 producer 정보 가져오기
+   * @returns {Array} producer 정보 배열
+   */
+  getAllProducers() {
+    const producers = [];
+    for (const peer of this.peers.values()) {
+      const peerProducers =
+        peer.producers || new Map();
+      for (const [
+        producerId,
+        producer,
+      ] of peerProducers.entries()) {
+        producers.push({
+          id: producerId,
+          peerId: peer.id,
+          producerId: producerId,
+          kind: producer.kind,
+          rtpParameters: producer.rtpParameters,
+          appData: producer.appData,
+        });
+      }
+    }
+    return producers;
   }
 
   /**
