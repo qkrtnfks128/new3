@@ -6,7 +6,6 @@ const config = require("./config");
 const mediasoupWorker = require("./lib/Worker");
 const RoomManager = require("./lib/RoomManager");
 const SocketHandler = require("./lib/SocketHandler");
-const fetch = require("node-fetch");
 
 // Express 앱 생성
 const app = express();
@@ -74,46 +73,19 @@ async function run() {
 
     // Render 환경을 위한 IP 설정
     if (process.env.RENDER) {
-      try {
-        // 외부 서비스를 통해 공인 IP 확인
-        const response = await fetch(
-          "https://api.ipify.org?format=json"
-        );
-        const data = await response.json();
-        const publicIp = data.ip;
-
-        // announcedIp 설정
+      // 실패 시 Render에서 제공하는 환경변수 사용
+      const renderExternalIp =
+        process.env.RENDER_EXTERNAL_URL ||
+        process.env.RENDER_EXTERNAL_IP;
+      if (renderExternalIp) {
         config.mediasoup.webRtcTransport.listenIps.forEach(
           (listenIp) => {
             if (listenIp.ip === "0.0.0.0") {
-              listenIp.announcedIp = publicIp;
+              listenIp.announcedIp =
+                renderExternalIp;
             }
           }
         );
-
-        console.log(
-          "Server public IP:",
-          publicIp
-        );
-      } catch (error) {
-        console.error(
-          "Failed to get public IP:",
-          error
-        );
-        // 실패 시 Render에서 제공하는 환경변수 사용
-        const renderExternalIp =
-          process.env.RENDER_EXTERNAL_URL ||
-          process.env.RENDER_EXTERNAL_IP;
-        if (renderExternalIp) {
-          config.mediasoup.webRtcTransport.listenIps.forEach(
-            (listenIp) => {
-              if (listenIp.ip === "0.0.0.0") {
-                listenIp.announcedIp =
-                  renderExternalIp;
-              }
-            }
-          );
-        }
       }
     }
 
