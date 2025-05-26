@@ -59,8 +59,7 @@ class SocketService {
   private socket: SocketWithPeerInfo | null =
     null;
   // private serverUrl = "http://localhost:3000";
-  private serverUrl =
-    "https://44.202.31.246:3000";
+  private serverUrl = "http://44.202.31.246:3000";
   // private serverUrl =
   //   "https://new3-ztmt.onrender.com";
 
