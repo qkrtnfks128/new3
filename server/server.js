@@ -23,6 +23,7 @@ const io = new Server(server, {
       "http://localhost:5173",
       "http://localhost:5175",
       "http://172.30.1.85:5175",
+      "https://mangki.kr",
     ],
     methods: ["GET", "POST"],
     credentials: false,

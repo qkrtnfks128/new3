@@ -67,6 +67,7 @@ module.exports = {
         {
           ip: "0.0.0.0",
           announcedIp: "172.168.10.17",
+          // announcedIp: "172.168.10.17",
         },
       ],
       initialAvailableOutgoingBitrate: 600000,
