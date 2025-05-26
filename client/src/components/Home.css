@@ -53,7 +53,8 @@
   gap: 1rem;
 }
 
-.join-room input {
+.join-room input,
+.user-info input {
   padding: 0.8rem;
   border: 1px solid #ddd;
   border-radius: 4px;

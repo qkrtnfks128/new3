@@ -14,6 +14,16 @@
       </div>
 
       <div class="join-options">
+        <div class="create-room">
+          <h2>새 방 만들기</h2>
+          <button
+            @click="handleCreateRoom"
+            class="create-button"
+            :disabled="!displayName.trim()"
+          >
+            새 방 생성
+          </button>
+        </div>
         <div class="join-room">
           <h2>기존 방 참여하기</h2>
           <form @submit.prevent="handleJoinRoom">
@@ -32,17 +42,6 @@
             </button>
           </form>
         </div>
-
-        <div class="create-room">
-          <h2>새 방 만들기</h2>
-          <button
-            @click="handleCreateRoom"
-            class="create-button"
-            :disabled="!displayName.trim()"
-          >
-            새 방 생성
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -56,7 +55,10 @@
     name: "Home",
     setup() {
       const roomId = ref("");
-      const displayName = ref("");
+      const displayName = ref(
+        "익명사용자" +
+          Math.floor(Math.random() * 1000)
+      );
       const router = useRouter();
 
       const handleJoinRoom = () => {
