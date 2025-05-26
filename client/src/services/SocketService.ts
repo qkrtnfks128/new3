@@ -58,25 +58,15 @@ class SocketService {
   private static instance: SocketService;
   private socket: SocketWithPeerInfo | null =
     null;
-  private serverUrl =
-    "https://new3-ztmt.onrender.com";
-  // "http://44.202.31.246:3000";
-  // "http://localhost:3000";
+  private serverUrl = "http://localhost:3000";
 
   private eventHandlers: Map<
     string,
     Array<(data: unknown) => void>
   > = new Map();
 
-  // ICE 서버 설정 추가
-  private iceServers = [
-    {
-      urls: [
-        "stun:stun.l.google.com:19302",
-        "stun:stun1.l.google.com:19302",
-      ],
-    },
-  ];
+  // ICE 서버 설정 제거
+  private iceServers = [];
 
   private constructor() {}
 
@@ -315,7 +305,6 @@ class SocketService {
     );
     return this.request("createWebRtcTransport", {
       transportType,
-      iceServers: this.iceServers, // STUN/TURN 서버 정보 추가
     });
   }
 

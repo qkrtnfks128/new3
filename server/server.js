@@ -32,15 +32,8 @@ const io = new Server(server, {
   pingInterval: 25000,
 });
 
-// ICE 서버 설정 (STUN/TURN)
-const iceServers = [
-  {
-    urls: [
-      "stun:stun.l.google.com:19302",
-      "stun:stun1.l.google.com:19302",
-    ],
-  },
-];
+// ICE 서버 설정 제거
+const iceServers = [];
 
 // config 객체에 iceServers 추가
 config.mediasoup = config.mediasoup || {};
