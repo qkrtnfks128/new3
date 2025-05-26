@@ -62,3 +62,11 @@ npm run dev
 ## 라이센스
 
 MIT
+
+EC2
+rm -rf new3
+git clone https://github.com/qkrtnfks128/new3.git
+cd new3
+cd server
+npm install
+npm start

@@ -109,10 +109,10 @@ async function run() {
       socketHandler.handleConnection
     );
 
-    // HTTPS 서버 시작 (443 포트 사용)
-    httpsServer.listen(443, () => {
+    // HTTPS 서버 시작 (3000 포트 사용)
+    httpsServer.listen(3000, () => {
       console.log(
-        "HTTPS Server running on port 443"
+        "HTTPS Server running on port 3000"
       );
     });
   } catch (error) {
