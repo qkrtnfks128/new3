@@ -397,14 +397,24 @@ class MediasoupService {
     }
   ): Promise<MediaStream> {
     try {
+      // 권한 상태 확인 및 요청
+      const permissions =
+        await this.checkAndRequestPermissions();
+      if (!permissions) {
+        throw new Error(
+          "카메라/마이크 권한이 거부되었습니다."
+        );
+      }
+
       console.log(
         "요청된 미디어 제약 조건:",
         constraints
       );
-      const stream = await navigator.mediaDevices
-        .getUserMedia(constraints)
-        .then()
-        .catch();
+
+      const stream =
+        await navigator.mediaDevices.getUserMedia(
+          constraints
+        );
 
       console.log(
         "로컬 스트림 생성 성공:",
@@ -412,6 +422,7 @@ class MediasoupService {
           .getTracks()
           .map((t) => `${t.kind}: ${t.label}`)
       );
+
       this.mediaState.localStream = stream;
 
       const localStreamInfo: MediaStreamInfo = {
@@ -432,7 +443,79 @@ class MediasoupService {
         "Failed to get user media:",
         error
       );
+      if (error instanceof Error) {
+        // 사용자 친화적인 에러 메시지
+        if (error.name === "NotAllowedError") {
+          throw new Error(
+            "카메라/마이크 접근이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요."
+          );
+        } else if (
+          error.name === "NotFoundError"
+        ) {
+          throw new Error(
+            "카메라/마이크를 찾을 수 없습니다."
+          );
+        } else if (
+          error.name === "NotReadableError"
+        ) {
+          throw new Error(
+            "카메라/마이크에 접근할 수 없습니다. 다른 앱이 사용 중일 수 있습니다."
+          );
+        }
+      }
       throw error;
+    }
+  }
+
+  // 권한 확인 및 요청 메서드 추가
+  private async checkAndRequestPermissions(): Promise<boolean> {
+    try {
+      // 권한 상태 확인
+      const permissions = await Promise.all([
+        navigator.permissions.query({
+          name: "camera" as PermissionName,
+        }),
+        navigator.permissions.query({
+          name: "microphone" as PermissionName,
+        }),
+      ]);
+
+      // 권한이 이미 거부된 경우
+      if (
+        permissions.some(
+          (p) => p.state === "denied"
+        )
+      ) {
+        console.log(
+          "카메라/마이크 권한이 거부되어 있습니다."
+        );
+        return false;
+      }
+
+      // 권한이 없는 경우 요청
+      if (
+        permissions.some(
+          (p) => p.state === "prompt"
+        )
+      ) {
+        // 임시 스트림을 요청하여 권한 획득
+        const tempStream =
+          await navigator.mediaDevices.getUserMedia(
+            {
+              video: true,
+              audio: true,
+            }
+          );
+        // 임시 스트림 정리
+        tempStream
+          .getTracks()
+          .forEach((track) => track.stop());
+      }
+
+      return true;
+    } catch (error) {
+      console.error("권한 확인 중 에러:", error);
+      return false;
     }
   }
 
