@@ -30,6 +30,8 @@ class MediasoupService {
   > = new Map();
   private initializationPromise: Promise<void> | null =
     null;
+  private hasMediaPermissions = false;
+  private permissionCheckInProgress = false;
 
   private constructor() {
     this.socketService =
@@ -469,8 +471,11 @@ class MediasoupService {
 
   // 권한 확인 및 요청 메서드 추가
   private async checkAndRequestPermissions(): Promise<boolean> {
+    if (this.permissionCheckInProgress)
+      return false;
+
     try {
-      // 권한 상태 확인
+      this.permissionCheckInProgress = true;
       const permissions = await Promise.all([
         navigator.permissions.query({
           name: "camera" as PermissionName,
@@ -480,42 +485,16 @@ class MediasoupService {
         }),
       ]);
 
-      // 권한이 이미 거부된 경우
-      if (
-        permissions.some(
-          (p) => p.state === "denied"
-        )
-      ) {
-        console.log(
-          "카메라/마이크 권한이 거부되어 있습니다."
+      this.hasMediaPermissions =
+        permissions.every(
+          (p) => p.state === "granted"
         );
-        return false;
-      }
-
-      // 권한이 없는 경우 요청
-      if (
-        permissions.some(
-          (p) => p.state === "prompt"
-        )
-      ) {
-        // 임시 스트림을 요청하여 권한 획득
-        const tempStream =
-          await navigator.mediaDevices.getUserMedia(
-            {
-              video: true,
-              audio: true,
-            }
-          );
-        // 임시 스트림 정리
-        tempStream
-          .getTracks()
-          .forEach((track) => track.stop());
-      }
-
-      return true;
+      return this.hasMediaPermissions;
     } catch (error) {
-      console.error("권한 확인 중 에러:", error);
+      console.log("권한 상태 확인 실패:", error);
       return false;
+    } finally {
+      this.permissionCheckInProgress = false;
     }
   }
 
