@@ -66,7 +66,7 @@ module.exports = {
       listenIps: [
         {
           ip: "0.0.0.0",
-          announcedIp: "172.168.10.17",
+          announcedIp: "169.254.191.188",
           // announcedIp: "172.168.10.17",
         },
       ],
