@@ -1,5 +1,7 @@
 const express = require("express");
 const http = require("http");
+const https = require("https");
+const fs = require("fs");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const config = require("./config");
@@ -12,25 +14,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// HTTP 서버 생성
-const server = http.createServer(app);
+// SSL 인증서 설정
+const options = {
+  cert: fs.readFileSync(
+    "/etc/letsencrypt/live/rtc.mangki.kr/fullchain.pem"
+  ),
+  key: fs.readFileSync(
+    "/etc/letsencrypt/live/rtc.mangki.kr/privkey.pem"
+  ),
+};
+
+// HTTPS 서버 생성
+const httpsServer = https.createServer(
+  options,
+  app
+);
 
 // Socket.IO 서버 생성
-const io = new Server(server, {
+const io = new Server(httpsServer, {
   cors: {
-    origin: [
-      "*",
-      "http://localhost:5173",
-      "http://localhost:5175",
-      "http://172.30.1.85:5175",
-      "https://mangki.kr",
-    ],
+    origin: "https://mangki.kr",
     methods: ["GET", "POST"],
-    credentials: false,
   },
-  // 소켓 타임아웃 설정도 추가
-  pingTimeout: 30000,
-  pingInterval: 25000,
 });
 
 // ICE 서버 설정 제거
@@ -104,12 +109,10 @@ async function run() {
       socketHandler.handleConnection
     );
 
-    // 서버 시작
-    const PORT =
-      process.env.PORT || config.server.port;
-    server.listen(PORT, () => {
+    // HTTPS 서버 시작 (443 포트 사용)
+    httpsServer.listen(443, () => {
       console.log(
-        `mediasoup 서버가 포트 ${PORT}에서 실행 중입니다`
+        "HTTPS Server running on port 443"
       );
     });
   } catch (error) {
