@@ -254,10 +254,12 @@
         );
 
         if (streamInfo.type === "remote") {
-          streams.value = [
-            ...streams.value,
-            streamInfo,
-          ];
+          if (streamInfo.id.includes("video")) {
+            streams.value = [
+              ...streams.value,
+              streamInfo,
+            ];
+          }
         }
       };
 
