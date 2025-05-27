@@ -181,32 +181,38 @@
       const mediasoupService =
         MediasoupService.getInstance();
 
-      // 내 로컬 디바이스 이니셜라이징
       const initializeLocalDevice = async () => {
         try {
           isLoading.value = false;
-          // 미디어 제약조건 설정 - 낮은 해상도와 비트레이트로 설정하여 네트워크 부하 감소
-          const constraints = {
-            video: {
-              width: { ideal: 640, max: 1280 },
-              height: { ideal: 480, max: 720 },
-              frameRate: { ideal: 15, max: 30 },
-            },
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            },
-          };
 
           const mediaStream =
-            await navigator.mediaDevices.getUserMedia(
-              constraints
+            await mediasoupService.createLocalStream(
+              {
+                video: {
+                  width: {
+                    ideal: 640,
+                    max: 1280,
+                  },
+                  height: {
+                    ideal: 480,
+                    max: 720,
+                  },
+                  frameRate: {
+                    ideal: 15,
+                    max: 30,
+                  },
+                },
+                audio: {
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true,
+                },
+              }
             );
+
           if (localVideoRef.value) {
             localVideoRef.value.srcObject =
               mediaStream;
-            // 비디오 요소에 이벤트 리스너 추가
             localVideoRef.value.onloadedmetadata =
               () => {
                 console.log(
@@ -225,16 +231,17 @@
                     );
                   });
               };
-          } else {
-            console.error(
-              "[Media] 비디오 요소가 존재하지 않습니다."
-            );
           }
         } catch (error) {
           console.error(
             "Failed to initialize local device:",
             error
           );
+          errorMessage.value = `디바이스 초기화 실패: ${
+            error instanceof Error
+              ? error.message
+              : String(error)
+          }`;
         }
       };
 
@@ -282,22 +289,6 @@
         );
       };
 
-      // const setupLocalVideo = async (
-      //   stream: MediaStream
-      // ) => {
-      //   if (localVideoRef.value) {
-      //     localVideoRef.value.srcObject = stream;
-      //     try {
-      //       await localVideoRef.value.play();
-      //     } catch (error) {
-      //       console.error(
-      //         "Failed to play local video:",
-      //         error
-      //       );
-      //     }
-      //   }
-      // };
-
       const toggleVideo = () => {
         const stream = localVideoRef.value
           ?.srcObject as MediaStream;
@@ -328,15 +319,11 @@
 
       const joinRoom = async () => {
         try {
-          // 소켓 연결
           socketService.connect();
-
-          // 무작위 Peer ID 생성
           const peerId = `peer_${Math.floor(
             Math.random() * 1000
           )}`;
 
-          // 방 참가
           const joinResult =
             await socketService.joinRoom(
               roomId.value,
@@ -345,15 +332,16 @@
             );
           console.log("Join result:", joinResult);
 
-          // Device 초기화
           await mediasoupService.initialize();
 
-          // // 로컬 스트림 생성
           const localStream =
-            await mediasoupService.createLocalStream();
-          // await setupLocalVideo(localStream);
+            mediasoupService.getLocalStream();
+          if (!localStream) {
+            throw new Error(
+              "로컬 스트림이 없습니다."
+            );
+          }
 
-          // // 스트림 전송
           await mediasoupService.produceStream(
             localStream
           );
@@ -400,7 +388,6 @@
         router.push("/");
       };
 
-      // 이벤트 리스너 설정
       const setupEventListeners = () => {
         mediasoupService.on(
           "newStream",
@@ -412,7 +399,6 @@
         );
       };
 
-      // 이벤트 리스너 정리
       const cleanupEventListeners = () => {
         mediasoupService.off(
           "newStream",
