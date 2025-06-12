@@ -714,6 +714,11 @@ class MediasoupService {
         consumer.id
       );
 
+      // 추가 대기 시간 (Resume 후 트랙이 활성화될 시간)
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100)
+      );
+
       // 트랙 상태 모니터링 설정
       consumer.track.onmute = () => {
         console.log(
