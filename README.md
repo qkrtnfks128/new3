@@ -70,3 +70,5 @@ cd new3
 cd server
 npm install
 npm start
+
+announcedIp 확인
